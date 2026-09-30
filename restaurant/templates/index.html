@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restaurant Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1E1B18;
+    --panel: #2A2622;
+    --paper: #F6F1E7;
+    --ink: #2A2622;
+    --muted: #9B9285;
+    --line: #3C362F;
+    --rust: #C1502E;
+    --rust-dark: #9E3F24;
+    --sage: #6E8B5E;
+    --amber: #D9A441;
+    --danger-bg: #3B2420;
+    --danger: #E38A78;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--paper);
+    padding: max(28px, env(safe-area-inset-top,0px)) 20px max(28px, env(safe-area-inset-bottom,0px));
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; }
+
+  header { margin-bottom: 22px; }
+  .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--amber); margin-bottom: 6px; }
+  h1 { font-family: 'Bitter', serif; font-weight: 700; font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 0; }
+
+  nav.tabs { display: flex; gap: 6px; margin: 20px 0 22px; flex-wrap: wrap; }
+  nav.tabs button {
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 9px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; cursor: pointer;
+  }
+  nav.tabs button.active { background: var(--rust); border-color: var(--rust); color: #fff; }
+
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+
+  #message { padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 16px; display: none; }
+  #message.error { background: var(--danger-bg); color: var(--danger); display: block; }
+  #message.success { background: #24352090; background: #2A3B24; color: #B7D3A3; display: block; }
+
+  .grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; margin-bottom: 14px; }
+  .card h3 { font-family: 'Bitter', serif; font-size: 1.05rem; margin: 0 0 4px; color: var(--paper); }
+  .card .price { font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-weight: 600; }
+  .card .muted { color: var(--muted); font-size: 0.85rem; }
+
+  .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item .info h3 { margin-bottom: 2px; }
+
+  button { font-family: inherit; font-weight: 600; font-size: 0.85rem; padding: 8px 14px; border-radius: 7px; border: 1px solid transparent; cursor: pointer; background: var(--rust); color: #fff; }
+  button:hover { background: var(--rust-dark); }
+  button.ghost { background: transparent; border-color: var(--muted); color: var(--paper); }
+  button.ghost:hover { background: rgba(255,255,255,0.06); }
+  button.sage { background: var(--sage); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  input, select {
+    width: 100%; padding: 9px 11px; font-size: 0.9rem; border-radius: 7px;
+    border: 1px solid var(--line); background: #22201C; color: var(--paper); font-family: inherit;
+  }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; }
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+
+  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 0.9rem; }
+  .cart-item:last-child { border-bottom: none; }
+  .cart-total { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-weight: 600; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--line); color: var(--amber); }
+
+  .tag { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); }
+  .tag.available { color: var(--sage); border-color: var(--sage); }
+  .tag.occupied { color: var(--rust); border-color: var(--rust); }
+  .tag.reserved { color: var(--amber); border-color: var(--amber); }
+  .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+  .order-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .order-row:last-child { border-bottom: none; }
+  .order-status-select { max-width: 150px; }
+
+  .report-num { font-family: 'IBM Plex Mono', monospace; font-size: 1.8rem; color: var(--amber); font-weight: 600; }
+  .empty { color: var(--muted); font-size: 0.9rem; padding: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">CODEALPHA · BACKEND TASK 3</div>
+    <h1>Restaurant Management</h1>
+  </header>
+
+  <div id="message" role="alert"></div>
+
+  <nav class="tabs">
+    <button data-tab="order" class="active">New Order</button>
+    <button data-tab="tables">Tables & Reservations</button>
+    <button data-tab="orders">Orders</button>
+    <button data-tab="reports">Reports</button>
+  </nav>
+
+  <!-- ORDER TAB -->
+  <section class="tab active" id="tab-order">
+    <div class="grid2">
+      <div>
+        <div class="card"><div id="menuList"><p class="empty">Loading menu…</p></div></div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Cart</h3>
+          <div class="field">
+            <label>Table (optional — leave blank for takeaway)</label>
+            <select id="tableSelect"><option value="">Takeaway</option></select>
+          </div>
+          <div class="field">
+            <label>Customer name (optional)</label>
+            <input id="customerName" placeholder="Walk-in guest">
+          </div>
+          <div id="cartItems"><p class="empty">No items added yet.</p></div>
+          <div class="cart-total"><span>Total</span><span id="cartTotal">Rs 0.00</span></div>
+          <button id="placeOrderBtn" style="width:100%; margin-top:14px;" disabled>Place order</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLES TAB -->
+  <section class="tab" id="tab-tables">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <h3>Tables</h3>
+          <div class="tables-grid" id="tablesGrid"></div>
+        </div>
+        <div class="card">
+          <h3>Active reservations</h3>
+          <div id="reservationsList"><p class="empty">Loading…</p></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Reserve a table</h3>
+        <div class="field"><label>Table</label><select id="resTable"></select></div>
+        <div class="field"><label>Customer name</label><input id="resName" placeholder="Customer name"></div>
+        <div class="row">
+          <div class="field"><label>Party size</label><input id="resParty" type="number" min="1" value="2"></div>
+          <div class="field"><label>Phone (optional)</label><input id="resPhone" placeholder="03xx-xxxxxxx"></div>
+        </div>
+        <div class="field"><label>Date & time</label><input id="resDateTime" type="datetime-local"></div>
+        <button id="resBtn" style="width:100%;">Reserve table</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ORDERS TAB -->
+  <section class="tab" id="tab-orders">
+    <div class="card">
+      <h3>All orders</h3>
+      <div id="ordersList"><p class="empty">Loading…</p></div>
+    </div>
+  </section>
+
+  <!-- REPORTS TAB -->
+  <section class="tab" id="tab-reports">
+    <div class="grid2">
+      <div class="card">
+        <h3>Today's sales</h3>
+        <div class="report-num" id="salesRevenue">Rs 0.00</div>
+        <p class="muted" id="salesCount">0 paid orders today</p>
+      </div>
+      <div class="card">
+        <h3>Low stock alerts</h3>
+        <div id="lowStockList"><p class="empty">Loading…</p></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  let menu = [], tables = [], cart = {};
+
+  function esc(t) { const d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+  function money(n) { return "Rs " + Number(n).toFixed(2); }
+  function fmtDate(iso) { return new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }); }
+
+  function show(msg, type) {
+    const box = $("message");
+    box.textContent = msg; box.className = type;
+    setTimeout(() => { box.className = ""; }, 4000);
+  }
+
+  async function api(path, method = "GET", body = null) {
+    const res = await fetch("/api/" + path, {
+      method, headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : null,
+    });
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) throw new Error(data.error || "Something went wrong.");
+    return data;
+  }
+
+  // ---------- Tabs ----------
+  document.querySelectorAll("nav.tabs button").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("section.tab").forEach(s => s.classList.remove("active"));
+      btn.classList.add("active");
+      $("tab-" + btn.dataset.tab).classList.add("active");
+      if (btn.dataset.tab === "tables") { loadTables(); loadReservations(); }
+      if (btn.dataset.tab === "orders") loadOrders();
+      if (btn.dataset.tab === "reports") loadReports();
+    };
+  });
+
+  // ---------- Menu + Cart ----------
+  async function loadMenu() {
+    try {
+      menu = await api("menu/");
+      if (!menu.length) { $("menuList").innerHTML = '<p class="empty">No menu items yet. Add some from /admin/.</p>'; return; }
+      $("menuList").innerHTML = menu.map(m => `
+        <div class="menu-item">
+          <div class="info">
+            <h3>${esc(m.name)}</h3>
+            <span class="price">${money(m.price)}</span> <span class="muted">· ${esc(m.category)}</span>
+          </div>
+          <button data-add="${m.id}">Add</button>
+        </div>`).join("");
+      document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => addToCart(b.dataset.add));
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  function addToCart(id) {
+    cart[id] = (cart[id] || 0) + 1;
+    renderCart();
+  }
+  function removeFromCart(id) {
+    delete cart[id];
+    renderCart();
+  }
+  function renderCart() {
+    const ids = Object.keys(cart);
+    if (!ids.length) {
+      $("cartItems").innerHTML = '<p class="empty">No items added yet.</p>';
+      $("cartTotal").textContent = money(0);
+      $("placeOrderBtn").disabled = true;
+      return;
+    }
+    let total = 0;
+    $("cartItems").innerHTML = ids.map(id => {
+      const item = menu.find(m => String(m.id) === id);
+      const qty = cart[id];
+      const sub = item.price * qty;
+      total += sub;
+      return `<div class="cart-item">
+        <span>${esc(item.name)} × ${qty}</span>
+        <span>${money(sub)} <button class="ghost" style="padding:3px 8px; margin-left:6px;" data-remove="${id}">✕</button></span>
+      </div>`;
+    }).join("");
+    $("cartTotal").textContent = money(total);
+    $("placeOrderBtn").disabled = false;
+    document.querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removeFromCart(b.dataset.remove));
+  }
+
+  $("placeOrderBtn").onclick = async () => {
+    const items = Object.entries(cart).map(([menu_item, quantity]) => ({ menu_item: Number(menu_item), quantity }));
+    try {
+      await api("orders/", "POST", {
+        table: $("tableSelect").value || null,
+        customer_name: $("customerName").value,
+        items,
+      });
+      show("Order placed.", "success");
+      cart = {}; renderCart();
+      $("customerName").value = "";
+      loadTables();
+    } catch (e) { show(e.message, "error"); }
+  };
+
+  // ---------- Tables ----------
+  async function loadTables() {
+    try {
+      tables = await api("tables/");
+      $("tablesGrid").innerHTML = tables.length ? tables.map(t => `
+        <div class="card" style="margin-bottom:0;">
+          <h3>Table ${esc(t.number)}</h3>
+          <p class="muted">Seats ${t.capacity}</p>
+          <span class="tag ${t.status}">${t.status}</span>
+        </div>`).join("") : '<p class="empty">No tables yet. Add some from /admin/.</p>';
+
+      const opts = tables.map(t => `<option value="${t.id}">Table ${esc(t.number)} (${t.capacity} seats)</option>`).join("");
+      $("tableSelect").innerHTML = '<option value="">Takeaway</option>' + opts;
+      $("resTable").innerHTML = opts || '<option value="">No tables</option>';
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  async function loadReservations() {
+    try {
+      const regs = await api("reservations/");
+      $("reservationsList").innerHTML = regs.length ? regs.map(r => `
+        <div class="order-row">
+          <div>
+            <b>${esc(r.customer_name)}</b> · Table ${esc(r.table_number)} · ${r.party_size} guests
+            <div class="muted">${fmtDate(r.date_time)}</div>
+          </div>
+          <button class="ghost" data-cancel-res="${r.id}">Cancel</button>
+        </div>`).join("") : '<p class="empty">No active reservations.</p>';
+      document.querySelectorAll("[data-cancel-res]").forEach(b => b.onclick = () => cancelReservation(b.dataset.cancelRes));
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  $("resBtn").onclick = async () => {
+    const dt = $("resDateTime").value;
+    if (!dt) { show("Pick a date and time.", "error"); return; }
+    try {
+      await api("reservations/", "POST", {
+        table: $("resTable").value,
+        customer_name: $("resName").value,
+        phone: $("resPhone").value,
+        party_size: Number($("resParty").value) || 1,
+        date_time: new Date(dt).toISOString(),
+      });
+      show("Table reserved.", "success");
+      $("resName").value = ""; $("resPhone").value = ""; $("resDateTime").value = "";
+      loadTables(); loadReservations();
+    } catch (e) { show(e.message, "error"); }
+  };
+
+  async function cancelReservation(id) {
+    try { await api(`reservations/${id}/`, "DELETE"); show("Reservation cancelled.", "success"); loadTables(); loadReservations(); }
+    catch (e) { show(e.message, "error"); }
+  }
+
+  // ---------- Orders ----------
+  async function loadOrders() {
+    try {
+      const orders = await api("orders/");
+      $("ordersList").innerHTML = orders.length ? orders.map(o => `
+        <div class="order-row">
+          <div>
+            <b>Order #${o.id}</b> · ${o.table_number ? "Table " + esc(o.table_number) : "Takeaway"}${o.customer_name ? " · " + esc(o.customer_name) : ""}
+            <div class="muted">${o.items.map(i => `${i.quantity}× ${esc(i.name)}`).join(", ")}</div>
+            <div class="muted">${fmtDate(o.created_at)} · <span class="price">${money(o.total_price)}</span></div>
+          </div>
+          <select class="order-status-select" data-status="${o.id}">
+            ${["pending","preparing","served","paid","cancelled"].map(s => `<option value="${s}" ${s===o.status?"selected":""}>${s}</option>`).join("")}
+          </select>
+        </div>`).join("") : '<p class="empty">No orders yet.</p>';
+      document.querySelectorAll("[data-status]").forEach(sel =>
+        sel.onchange = () => updateOrderStatus(sel.dataset.status, sel.value));
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  async function updateOrderStatus(id, newStatus) {
+    try { await api(`orders/${id}/status/`, "PATCH", { status: newStatus }); show("Order updated.", "success"); loadOrders(); }
+    catch (e) { show(e.message, "error"); loadOrders(); }
+  }
+
+  // ---------- Reports ----------
+  async function loadReports() {
+    try {
+      const sales = await api("reports/daily-sales/");
+      $("salesRevenue").textContent = money(sales.revenue);
+      $("salesCount").textContent = `${sales.orders_paid} paid order${sales.orders_paid === 1 ? "" : "s"} today`;
+    } catch (e) { show(e.message, "error"); }
+    try {
+      const low = await api("reports/low-stock/");
+      $("lowStockList").innerHTML = low.length ? low.map(i => `
+        <div class="order-row">
+          <span>${esc(i.name)}</span>
+          <span class="tag occupied">${i.quantity} ${esc(i.unit)} left</span>
+        </div>`).join("") : '<p class="empty">All stock levels look healthy.</p>';
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  loadMenu();
+  loadTables();
+</script>
+</body>
+</html>
